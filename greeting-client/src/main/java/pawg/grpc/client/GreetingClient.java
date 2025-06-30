@@ -1,13 +1,9 @@
 package pawg.grpc.client;
 
-import pawg.grpc.greeting.service.HelloRequest;
-import pawg.grpc.greeting.service.HelloReply;
-import pawg.grpc.greeting.service.GreeterGrpc;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pawg.grpc.greeting.service.*;
 
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +25,7 @@ public class GreetingClient {
     }
 
     public void greet(String name) {
-        logger.info("Will try to greet " + name + "...");
+        logger.info("Will try to greet {} ...", name);
         HelloRequest request = HelloRequest.newBuilder().setName(name).build();
         HelloReply response;
         try {
