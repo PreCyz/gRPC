@@ -1,4 +1,5 @@
 package pawg.grpc.server;
+
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import org.slf4j.Logger;
@@ -15,7 +16,8 @@ public class GreetingServer {
 
     public void start() throws IOException {
         server = ServerBuilder.forPort(PORT)
-                .addService(new GreeterServiceImpl()) // Add your service implementation
+                .addService(new GreeterServiceImpl())
+                .addService(new PersonServiceImpl())
                 .build()
                 .start();
         logger.info("Server started, listening on " + PORT);

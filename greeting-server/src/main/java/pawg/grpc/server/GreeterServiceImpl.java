@@ -1,11 +1,9 @@
 package pawg.grpc.server;
 
-import pawg.grpc.greeting.service.HelloRequest;
-import pawg.grpc.greeting.service.HelloReply;
-import pawg.grpc.greeting.service.GreeterGrpc;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pawg.grpc.service.greeting.*;
 
 public class GreeterServiceImpl extends GreeterGrpc.GreeterImplBase {
 
