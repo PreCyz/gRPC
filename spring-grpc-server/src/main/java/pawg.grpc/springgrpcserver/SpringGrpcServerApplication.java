@@ -1,4 +1,4 @@
-package awesomepawg.springgrpcserver;
+package pawg.grpc.springgrpcserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
