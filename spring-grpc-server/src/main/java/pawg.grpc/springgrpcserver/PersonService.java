@@ -1,19 +1,30 @@
 package pawg.grpc.springgrpcserver;
 
-import java.util.Random;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class PersonService {
 
     private static final Logger logger = LoggerFactory.getLogger(PersonService.class);
 
+    private final StatisticRepository statisticRepository;
+
+    @Autowired
+    public PersonService(StatisticRepository statisticRepository) {
+        this.statisticRepository = statisticRepository;
+    }
+
     public PersonEntity fetchPersonById(long id) {
         logger.info("Fetch person by id response to client: {}", id);
-        return new PersonEntity(id, UUID.randomUUID().toString(), "Zimorodek");
+        Optional<Statistic> pawg = statisticRepository.findByUsername("PAWG");
+        return pawg.map(s -> new PersonEntity(id, s.id, s.username))
+                .orElseGet(() -> new PersonEntity(id, "default", "default"));
     }
 
     public PersonEntity upsertPerson(String name, String lastName) {

@@ -5,9 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.grpc.server.service.GrpcService;
-import pawg.grpc.service.person.PersonGrpc;
-import pawg.grpc.service.person.PersonRequest;
-import pawg.grpc.service.person.PersonResponse;
+import pawg.grpc.service.person.*;
 
 @GrpcService
 public class PersonServerImpl extends PersonGrpc.PersonImplBase {
@@ -39,7 +37,7 @@ public class PersonServerImpl extends PersonGrpc.PersonImplBase {
 
         // Complete the RPC call
         responseObserver.onCompleted();
-        logger.info("Sent response to client: {}", response);
+        logger.info("Sent response to client: {}", personEntity);
     }
 
     @Override
@@ -60,7 +58,7 @@ public class PersonServerImpl extends PersonGrpc.PersonImplBase {
 
         // Complete the RPC call
         responseObserver.onCompleted();
-        logger.info("Sent response to client: {}", response);
+        logger.info("Sent response to client: {}", personEntity);
     }
 
     @Override
