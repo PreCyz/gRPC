@@ -9,13 +9,13 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>greeting-client</artifactId>
+    <artifactId>grpc-server</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>pawg.grpc</groupId>
-            <artifactId>greeting-service</artifactId>
+            <artifactId>grpc-service</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -60,7 +60,7 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>pawg.grpc.client.GreetingClient</mainClass>
+                                    <mainClass>pawg.grpc.server.GreetingServer</mainClass>
                                 </transformer>
                             </transformers>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

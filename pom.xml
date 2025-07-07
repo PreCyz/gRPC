@@ -19,9 +19,9 @@
     </properties>
 
     <modules>
-        <module>greeting-service</module>
-        <module>greeting-client</module>
-        <module>greeting-server</module>
+        <module>grpc-service</module>
+        <module>grpc-client</module>
+        <module>grpc-server</module>
         <module>spring-grpc-server</module>
     </modules>
 

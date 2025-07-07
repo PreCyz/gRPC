@@ -39,7 +39,7 @@
     </dependency>
     <dependency>
       <groupId>pawg.grpc</groupId>
-      <artifactId>greeting-service</artifactId>
+      <artifactId>grpc-service</artifactId>
       <version>${project.version}</version>
     </dependency>
 
