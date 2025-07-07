@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: spring-grpc-server
+  grpc:
+    server:
+      port: 9090
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    access:
+      default: read_only
+    web:
+      exposure:
+        include: health,info,beans
+      base-path: /a

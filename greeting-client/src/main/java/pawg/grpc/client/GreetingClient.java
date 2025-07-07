@@ -38,7 +38,8 @@ public class GreetingClient {
     }
 
     public static void main(String[] args) throws Exception {
-        GreetingClient client = new GreetingClient("localhost", 50051);
+//        GreetingClient client = new GreetingClient("localhost", 50051);
+        GreetingClient client = new GreetingClient("localhost", 9090);
         try {
             String user = "world";
             if (args.length > 0) {

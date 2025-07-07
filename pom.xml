@@ -22,6 +22,7 @@
         <module>greeting-service</module>
         <module>greeting-client</module>
         <module>greeting-server</module>
+        <module>spring-grpc-server</module>
     </modules>
 
     <dependencyManagement>

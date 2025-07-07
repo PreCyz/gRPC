@@ -38,7 +38,8 @@ public class PersonClient {
     }
 
     public static void main(String[] args) throws Exception {
-        PersonClient client = new PersonClient("localhost", 50051);
+//        PersonClient client = new PersonClient("localhost", 50051);
+        PersonClient client = new PersonClient("localhost", 9090);
         try {
             String user = "world";
             if (args.length > 0) {
