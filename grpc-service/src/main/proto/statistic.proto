@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "pawg.grpc.service.statistics";
+option java_outer_classname = "StatisticServiceProto";
+
+package statistics;
+
+service Statistic {
+  rpc GetStatistic (StatisticRequest) returns (StatisticResponse) {}
+  rpc UpsertStatistic (StatisticRequest) returns (StatisticResponse) {}
+  rpc DeleteStatistic (StatisticRequest) returns (StatisticResponse) {}
+}
+
+// The request message containing the user's name.
+message StatisticRequest {
+  optional int64 id = 1;
+  optional string username = 2;
+}
+
+// The response message containing the person.
+message StatisticResponse {
+  optional int64 id = 1;
+  optional string username = 2;
+  optional string last_execution_date = 3;
+  optional string first_execution_date = 4;
+  optional string last_success_date = 5;
+  optional string last_failed_date = 6;
+  optional string java_version = 7;
+  optional string last_update_status = 8;
+  optional string last_run_type = 9;
+  repeated string system_users = 10;
+  optional string application_version = 11;
+  optional string status = 12;
+}

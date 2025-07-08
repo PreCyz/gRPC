@@ -1,9 +1,8 @@
 package pawg.grpc.springgrpcserver;
 
+import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import java.util.Optional;
-
-public interface StatisticRepository extends MongoRepository<Statistic, String> {
-    Optional<Statistic> findByUsername(String username);
+public interface StatisticRepository extends MongoRepository<StatisticEntity, String> {
+    Optional<StatisticEntity> findByUsername(String username);
 }
