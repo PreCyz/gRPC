@@ -32,7 +32,7 @@ public class StatisticService {
         return statistic;
     }
 
-    public void deleteStatisticById(long id) {
+    public void deleteStatisticById(String id) {
         logger.info("Delete person with id: {}", id);
     }
 }

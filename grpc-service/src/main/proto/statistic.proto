@@ -14,13 +14,13 @@ service Statistic {
 
 // The request message containing the user's name.
 message StatisticRequest {
-  optional int64 id = 1;
+  optional string id = 1;
   optional string username = 2;
 }
 
 // The response message containing the person.
 message StatisticResponse {
-  optional int64 id = 1;
+  optional string id = 1;
   optional string username = 2;
   optional string last_execution_date = 3;
   optional string first_execution_date = 4;

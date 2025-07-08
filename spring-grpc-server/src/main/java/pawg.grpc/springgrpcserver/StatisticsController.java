@@ -31,7 +31,7 @@ public class StatisticsController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteById(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteById(@PathVariable String id) {
         statisticService.deleteStatisticById(id);
         return ResponseEntity.ok(null);
     }

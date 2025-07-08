@@ -31,9 +31,8 @@ public class StatisticsGRPC extends StatisticGrpc.StatisticImplBase {
         StatisticEntity statisticEntity = statisticService.fetchStatisticByUsername(request.getUsername());
 
         Builder responseBuilder = StatisticResponse.newBuilder()
-                                                   .setId(request.getId())
+                                                   .setId(statisticEntity.id)
                                                    .setUsername(request.getUsername())
-                                                   .setApplicationVersion("1.0")
                                                    .setFirstExecutionDate(statisticEntity.firstExecutionDate)
                                                    .setLastExecutionDate(statisticEntity.lastExecutionDate)
                                                    .setLastFailedDate(statisticEntity.lastFailedDate)
@@ -66,7 +65,6 @@ public class StatisticsGRPC extends StatisticGrpc.StatisticImplBase {
         StatisticResponse response = StatisticResponse.newBuilder()
                                                       .setId(request.getId())
                                                       .setUsername(request.getUsername())
-                                                      .setApplicationVersion("1.0")
                                                       .setFirstExecutionDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                                                       .setLastExecutionDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                                                       .setLastFailedDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
@@ -74,6 +72,8 @@ public class StatisticsGRPC extends StatisticGrpc.StatisticImplBase {
                                                       .setLastRunType("MANUAL")
                                                       .setLastSuccessDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                                                       .setLastUpdateStatus("PARTIAL")
+                                                      .setApplicationVersion("1.0")
+                                                      .addSystemUsers("systemUser")
                                                       .setStatus("UPDATED")
                                                       .build();
 
@@ -92,9 +92,9 @@ public class StatisticsGRPC extends StatisticGrpc.StatisticImplBase {
         statisticService.deleteStatisticById(request.getId());
 
         StatisticResponse response = StatisticResponse.newBuilder()
-                                                .setId(request.getId())
-                                                .setStatus("DELETED")
-                                                .build();
+                                                      .setId(request.getId())
+                                                      .setStatus("DELETED")
+                                                      .build();
 
         // Send the response
         responseObserver.onNext(response);

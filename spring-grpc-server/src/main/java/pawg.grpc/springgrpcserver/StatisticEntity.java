@@ -20,6 +20,7 @@ public class StatisticEntity implements Serializable {
     public String lastRunType;
     public Set<String> systemUsers;
     public String applicationVersion;
+    public String status;
 
     @Override
     public String toString() {
@@ -35,6 +36,7 @@ public class StatisticEntity implements Serializable {
                ", lastRunType='" + lastRunType + '\'' +
                ", systemUsers=" + systemUsers +
                ", applicationVersion='" + applicationVersion + '\'' +
+               ", status='" + status + '\'' +
                '}';
     }
 }

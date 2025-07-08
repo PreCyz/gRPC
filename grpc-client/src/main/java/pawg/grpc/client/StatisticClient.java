@@ -27,7 +27,7 @@ public class StatisticClient {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    public void executePerson(int id) {
+    public void executePerson(String id) {
         logger.info("Will try to fetch {} ...", id);
         StatisticRequest request = StatisticRequest.newBuilder().setId(id).build();
         StatisticResponse response;
@@ -44,7 +44,7 @@ public class StatisticClient {
         StatisticClient client = new StatisticClient("localhost", 50051);
 //        PersonClient client = new PersonClient("localhost", 9090);
         try {
-            client.executePerson(1);
+            client.executePerson("1");
         } finally {
             client.shutdown();
         }
