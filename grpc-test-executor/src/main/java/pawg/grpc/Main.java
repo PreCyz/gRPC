@@ -69,7 +69,6 @@ public class Main {
     private static void executeGrpcCall(GrpcClient client, int counter) {
         StatisticResponse statisticResponse = client.fetchStatistic(USERNAME);
         System.out.printf("%d. gRPC call completed [%s].%n", counter, statisticResponse.getUsername());
-
     }
 
     private static void writeResultToFile(String fileName, Duration duration) {

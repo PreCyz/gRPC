@@ -42,9 +42,10 @@ public class StatisticClient {
 
     public static void main(String[] args) throws Exception {
         StatisticClient client = new StatisticClient("localhost", 50051);
-//        PersonClient client = new PersonClient("localhost", 9090);
+//        StatisticClient client = new StatisticClient("localhost", 9090);
         try {
             client.executePerson("1");
+            client.executePerson("2");
         } finally {
             client.shutdown();
         }
