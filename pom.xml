@@ -23,6 +23,7 @@
         <module>grpc-client</module>
         <module>grpc-server</module>
         <module>spring-grpc-server</module>
+        <module>grpc-test-executor</module>
     </modules>
 
     <dependencyManagement>
