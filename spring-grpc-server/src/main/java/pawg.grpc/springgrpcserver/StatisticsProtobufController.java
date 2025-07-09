@@ -1,18 +1,12 @@
 package pawg.grpc.springgrpcserver;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import pawg.grpc.service.statistics.StatisticRequest;
-import pawg.grpc.service.statistics.StatisticResponse;
+import org.springframework.web.bind.annotation.*;
+import pawg.grpc.service.statistics.*;
 import pawg.grpc.service.statistics.StatisticResponse.Builder;
+
+import java.util.List;
 
 @RestController
 @RequestMapping(path = "/statistics/protobuf")
@@ -48,27 +42,23 @@ public class StatisticsProtobufController {
         return ResponseEntity.ok(responseBuilder.build());
     }
 
-    @PutMapping(
+    @PostMapping(
+            consumes = "application/x-protobuf",
             produces = "application/x-protobuf"
     )
-    public ResponseEntity<StatisticResponse> update(@RequestBody StatisticRequest requestPayload) {
-        var statisticEntity = new StatisticEntity();
-        statisticEntity.id = requestPayload.getId();
-        statisticEntity.username = requestPayload.getUsername();
-        StatisticEntity statisticEntity1 = statisticService.upsertStatistic(statisticEntity);
-        Builder responseBuilder = StatisticResponse.newBuilder()
-                                                   .setId(requestPayload.getId())
-                                                   .setUsername(requestPayload.getUsername())
-                                                   .setFirstExecutionDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                                                   .setLastExecutionDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                                                   .setLastFailedDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                                                   .setJavaVersion(System.getProperty("java.version"))
-                                                   .setLastRunType("MANUAL")
-                                                   .setLastSuccessDate(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                                                   .setLastUpdateStatus("PARTIAL")
-                                                   .setApplicationVersion("1.0")
-                                                   .addSystemUsers("systemUser")
-                                                   .setStatus("UPDATED");
-        return ResponseEntity.ok(responseBuilder.build());
+    public ResponseEntity<ResponseCollection> getPersonById(@RequestBody RequestCollection request) {
+        StatisticEntity statisticEntity = statisticService.fetchStatisticByUsername(
+                request.getStatisticsList().get(0).getUsername()
+        );
+
+        List<StatisticResponse> list = request.getStatisticsList()
+                .stream()
+                .map(r -> StatisticsGRPC.createStatisticResponse(statisticEntity))
+                .toList();
+
+        ResponseCollection responseCollection = ResponseCollection.newBuilder().addAllStatistics(list).build();
+
+        return ResponseEntity.ok(responseCollection);
     }
+
 }

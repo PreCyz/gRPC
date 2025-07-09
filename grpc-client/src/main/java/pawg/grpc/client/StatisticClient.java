@@ -1,14 +1,11 @@
 package pawg.grpc.client;
 
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
-import java.util.concurrent.TimeUnit;
+import io.grpc.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pawg.grpc.service.statistics.StatisticGrpc;
-import pawg.grpc.service.statistics.StatisticRequest;
-import pawg.grpc.service.statistics.StatisticResponse;
+import pawg.grpc.service.statistics.*;
+
+import java.util.concurrent.TimeUnit;
 
 public class StatisticClient {
     private static final Logger logger = LoggerFactory.getLogger(StatisticClient.class);
@@ -27,9 +24,9 @@ public class StatisticClient {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    public void executePerson(String id) {
-        logger.info("Will try to fetch {} ...", id);
-        StatisticRequest request = StatisticRequest.newBuilder().setId(id).build();
+    public void executePerson(String username) {
+        logger.info("Will try to fetch {} ...", username);
+        StatisticRequest request = StatisticRequest.newBuilder().setUsername(username).build();
         StatisticResponse response;
         try {
             response = blockingStub.getStatistic(request);
@@ -41,11 +38,11 @@ public class StatisticClient {
     }
 
     public static void main(String[] args) throws Exception {
-        StatisticClient client = new StatisticClient("localhost", 50051);
-//        StatisticClient client = new StatisticClient("localhost", 9090);
+//        StatisticClient client = new StatisticClient("localhost", 50051);
+        StatisticClient client = new StatisticClient("localhost", 9090);
         try {
-            client.executePerson("1");
-            client.executePerson("2");
+            client.executePerson("PAWG");
+            client.executePerson("PAWG");
         } finally {
             client.shutdown();
         }

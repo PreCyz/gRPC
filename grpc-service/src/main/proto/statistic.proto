@@ -8,14 +8,21 @@ package statistics;
 
 service Statistic {
   rpc GetStatistic (StatisticRequest) returns (StatisticResponse) {}
-  rpc UpsertStatistic (StatisticRequest) returns (StatisticResponse) {}
-  rpc DeleteStatistic (StatisticRequest) returns (StatisticResponse) {}
+  rpc PostStatistics (RequestCollection) returns (ResponseCollection) {}
+}
+
+message RequestCollection {
+  repeated StatisticRequest statistics = 1;
 }
 
 // The request message containing the user's name.
 message StatisticRequest {
   optional string id = 1;
   optional string username = 2;
+}
+
+message ResponseCollection {
+  repeated StatisticResponse statistics = 1;
 }
 
 // The response message containing the person.

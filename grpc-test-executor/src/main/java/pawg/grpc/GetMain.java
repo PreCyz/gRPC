@@ -1,41 +1,43 @@
 package pawg.grpc;
 
 import com.google.gson.Gson;
-import java.io.FileWriter;
-import java.io.IOException;
+import pawg.grpc.service.statistics.StatisticResponse;
+
+import java.io.*;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.http.*;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
-import pawg.grpc.service.statistics.StatisticResponse;
 
-public class Main {
+public class GetMain {
 
+//    private static final String HOST = "Grpc-vs-REST.eu-north-1.elasticbeanstalk.com";
     private static final String HOST = "localhost";
     private static final String USERNAME = "PAWG";
-    private static final int GRPC_PORT = 50051;
+    private static final int GRPC_PORT = 9090;
     private static final int REST_PORT = 8080;
-    private static final URI REST_URI = URI.create("https://%s:%d/statistics/%s".formatted(HOST, REST_PORT, USERNAME));
+    private static final URI REST_URI = URI.create("http://%s:%d/statistics/%s".formatted(HOST, REST_PORT, USERNAME));
+    private static final URI REST_PROTOBUF_URI = URI.create("http://%s:%d/statistics/protobuf/%s".formatted(HOST, REST_PORT, USERNAME));
     private static final Gson GSON = new Gson();
 
     public static void main(String[] args) {
         var start = LocalDateTime.now();
 
-        var executor = Executors.newFixedThreadPool(2);
+        var executor = Executors.newFixedThreadPool(3);
         int numberOfCalls = 1000;
         var grpcClient = new GrpcClient(HOST, GRPC_PORT);
 
-        try (var restClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
+        try (var restClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+             var restProtobufClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
 
             CompletableFuture.allOf(
                     CompletableFuture.runAsync(runnableGrpc(grpcClient, numberOfCalls), executor),
-                    CompletableFuture.runAsync(runnableRest(restClient, numberOfCalls), executor)
+                    CompletableFuture.runAsync(runnableRest(restClient, numberOfCalls), executor),
+                    CompletableFuture.runAsync(runnableRestProtobuf(restProtobufClient, numberOfCalls), executor)
             ).join();
 
         } catch (Exception e) {
@@ -49,19 +51,19 @@ public class Main {
         } finally {
             executor.shutdown();
             Duration duration = Duration.between(start, LocalDateTime.now());
-            System.out.printf("Test completed in %d:%d%n.", duration.toMinutes(), duration.toSecondsPart());
+            System.out.printf("Test completed in %d:%d.%n", duration.toMinutes(), duration.toSecondsPart());
         }
         System.exit(0);
     }
 
     private static Runnable runnableGrpc(final GrpcClient grpcClient, final int numberOfRequests) {
         return () -> {
-            for (int i = 0; i < numberOfRequests; i++) {
+            for (int i = 1; i <= numberOfRequests; i++) {
                 LocalDateTime start = LocalDateTime.now();
                 executeGrpcCall(grpcClient, i);
                 Duration duration = Duration.between(start, LocalDateTime.now());
 
-                writeResultToFile("grpc-result.txt", duration);
+                writeResultToFile("grpc.csv", duration);
             }
         };
     }
@@ -81,12 +83,12 @@ public class Main {
 
     private static Runnable runnableRest(final HttpClient httpClient, final int numberOfRequests) {
         return () -> {
-            for (int i = 0; i < numberOfRequests; i++) {
+            for (int i = 1; i <= numberOfRequests; i++) {
                 LocalDateTime start = LocalDateTime.now();
                 executeRestCall(httpClient, i);
                 Duration duration = Duration.between(start, LocalDateTime.now());
 
-                writeResultToFile("rest-result.txt", duration);
+                writeResultToFile("rest.csv", duration);
             }
         };
     }
@@ -100,6 +102,37 @@ public class Main {
             HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8));
             StatisticDTO statisticDTO = GSON.fromJson(response.body(), StatisticDTO.class);
             System.out.printf("%d. REST call completed [%s].%n", counter, statisticDTO.username);
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace(System.err);
+        }
+    }
+
+    private static Runnable runnableRestProtobuf(HttpClient httpClient, int numberOfRequests) {
+        return () -> {
+            for (int i = 1; i <= numberOfRequests; i++) {
+                LocalDateTime start = LocalDateTime.now();
+                executeRestProtobufCall(httpClient, i);
+                Duration duration = Duration.between(start, LocalDateTime.now());
+
+                writeResultToFile("protobuf.csv", duration);
+            }
+        };
+    }
+
+    private static void executeRestProtobufCall(final HttpClient client, final int counter) {
+        try {
+            HttpRequest get = HttpRequest.newBuilder()
+                    .GET()
+                    .uri(REST_PROTOBUF_URI)
+                    .header("Content-Type", "application/x-protobuf")
+                    .header("Accept", "application/x-protobuf")
+                    .build();
+
+            try (InputStream stream = client.send(get, BodyHandlers.ofInputStream()).body()) {
+                StatisticResponse statisticResponse = StatisticResponse.parseFrom(stream);
+                System.out.printf("%d. Protobuf call completed [%s].%n", counter, statisticResponse.getUsername());
+            }
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace(System.err);

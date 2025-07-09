@@ -1,12 +1,10 @@
 package pawg.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
+import pawg.grpc.service.statistics.*;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import pawg.grpc.service.statistics.StatisticGrpc;
-import pawg.grpc.service.statistics.StatisticRequest;
-import pawg.grpc.service.statistics.StatisticResponse;
 
 public class GrpcClient {
 
@@ -32,5 +30,26 @@ public class GrpcClient {
             e.printStackTrace(System.err);
         }
         return StatisticResponse.newBuilder().build();
+    }
+
+    public ResponseCollection fetchStatistics(RequestCollection request) {
+        try {
+            return blockingStub.postStatistics(request);
+        } catch (StatusRuntimeException e) {
+            e.printStackTrace(System.err);
+        }
+        return ResponseCollection.newBuilder().build();
+    }
+
+    static RequestCollection buildRequestCollection(int numberOfRecords) {
+        List<StatisticRequest> list = new ArrayList<>(numberOfRecords);
+        for (int i = 0; i < numberOfRecords; i++) {
+            list.add(StatisticRequest.newBuilder()
+                    .setUsername("PAWG")
+                    .setId(UUID.randomUUID().toString())
+                    .build()
+            );
+        }
+        return RequestCollection.newBuilder().addAllStatistics(list).build();
     }
 }

@@ -20,4 +20,4 @@ management:
     web:
       exposure:
         include: health,info,beans
-      base-path: /a
+      base-path: /status

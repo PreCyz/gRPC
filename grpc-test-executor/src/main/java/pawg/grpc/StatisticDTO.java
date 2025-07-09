@@ -4,6 +4,13 @@ import java.util.Set;
 
 public class StatisticDTO {
 
+    public StatisticDTO() {}
+
+    public StatisticDTO(String id, String username) {
+        this.id = id;
+        this.username = username;
+    }
+
     public String id;
     public String username;
     public String lastExecutionDate;
