@@ -1,17 +1,20 @@
 package pawg.grpc;
 
 import com.google.gson.Gson;
-import pawg.grpc.service.statistics.StatisticResponse;
-
-import java.io.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import pawg.grpc.service.statistics.StatisticResponse;
 
 public class GetMain {
 
@@ -29,10 +32,11 @@ public class GetMain {
 
         var executor = Executors.newFixedThreadPool(3);
         int numberOfCalls = 1000;
-        var grpcClient = new GrpcClient(HOST, GRPC_PORT);
+
 
         try (var restClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-             var restProtobufClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
+             var restProtobufClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+             var grpcClient = new GrpcClient(HOST, GRPC_PORT);) {
 
             CompletableFuture.allOf(
                     CompletableFuture.runAsync(runnableGrpc(grpcClient, numberOfCalls), executor),
@@ -41,12 +45,6 @@ public class GetMain {
             ).join();
 
         } catch (Exception e) {
-            e.printStackTrace(System.err);
-        }
-
-        try {
-            grpcClient.shutdown();
-        } catch (InterruptedException e) {
             e.printStackTrace(System.err);
         } finally {
             executor.shutdown();

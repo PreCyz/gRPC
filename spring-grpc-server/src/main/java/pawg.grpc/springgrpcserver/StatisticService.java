@@ -1,35 +1,48 @@
 package pawg.grpc.springgrpcserver;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
-public class StatisticService {
+@Profile("!mongo")
+public class StatisticService implements DataService {
 
     private static final Logger logger = LoggerFactory.getLogger(StatisticService.class);
 
-    private final StatisticRepository statisticRepository;
-
-    @Autowired
-    public StatisticService(StatisticRepository statisticRepository) {
-        this.statisticRepository = statisticRepository;
-    }
-
+    @Override
     public StatisticEntity fetchStatisticByUsername(String username) {
         logger.info("Fetch stat by username: {}", username);
-        StatisticEntity statisticEntity = statisticRepository.findByUsername(username).orElse(new StatisticEntity());
-        statisticEntity.status = "FETCHED";
+        return createStatisticEntity(username);
+    }
+
+    private StatisticEntity createStatisticEntity(String username) {
+        StatisticEntity statisticEntity = new StatisticEntity();
+        statisticEntity.id = UUID.randomUUID().toString();
+        statisticEntity.username = username;
+        statisticEntity.lastExecutionDate =  LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        statisticEntity.firstExecutionDate = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        statisticEntity.lastSuccessDate = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        statisticEntity.lastFailedDate = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        statisticEntity.javaVersion = System.getProperty("java.version");
+        statisticEntity.lastUpdateStatus = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        statisticEntity.lastRunType = "MANUAL";
+        statisticEntity.systemUsers = Set.of(System.getProperty("user.name"));
+        statisticEntity.applicationVersion = "1.0";
+        statisticEntity.status = "CREATED";
         return statisticEntity;
     }
 
-    public List<StatisticEntity> fetchStatistics(List<StatisticEntity>  statistics) {
+    @Override
+    public List<StatisticEntity> fetchStatistics(List<StatisticEntity> statistics) {
         logger.info("Fetch stat count: {}", statistics.size());
-        StatisticEntity statisticEntity = statisticRepository.findByUsername(statistics.get(0).username)
-                .orElse(new StatisticEntity());
+        StatisticEntity statisticEntity = createStatisticEntity(statistics.get(0).username);
         return statistics.stream().map(s -> statisticEntity).toList();
     }
 }

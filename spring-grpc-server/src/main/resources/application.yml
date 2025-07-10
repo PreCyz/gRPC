@@ -5,11 +5,6 @@ spring:
     server:
       port: 9090
 
-  data:
-    mongodb:
-      uri: mongodb+srv://${mongodb.username}:${mongodb.password}@${mongodb.host}/?retryWrites=true&w=majority&appName=Gipter-test
-      database: ${mongodb.database}
-
 server:
   port: 8080
 

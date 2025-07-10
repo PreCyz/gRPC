@@ -1,22 +1,28 @@
 package pawg.grpc.springgrpcserver;
 
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import pawg.grpc.service.statistics.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import pawg.grpc.service.statistics.RequestCollection;
+import pawg.grpc.service.statistics.ResponseCollection;
+import pawg.grpc.service.statistics.StatisticResponse;
 import pawg.grpc.service.statistics.StatisticResponse.Builder;
-
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "/statistics/protobuf")
 public class StatisticsProtobufController {
 
-    private final StatisticService statisticService;
+    private final DataService dataService;
 
     @Autowired
-    public StatisticsProtobufController(StatisticService statisticService) {
-        this.statisticService = statisticService;
+    public StatisticsProtobufController(DataService dataService) {
+        this.dataService = dataService;
     }
 
     @GetMapping(
@@ -24,7 +30,7 @@ public class StatisticsProtobufController {
             produces = "application/x-protobuf"
     )
     public ResponseEntity<StatisticResponse> getPersonById(@PathVariable String username) {
-        StatisticEntity statisticEntity = statisticService.fetchStatisticByUsername(username);
+        StatisticEntity statisticEntity = dataService.fetchStatisticByUsername(username);
         Builder responseBuilder = StatisticResponse.newBuilder()
                                                    .setId(statisticEntity.id)
                                                    .setUsername(username)
@@ -47,7 +53,7 @@ public class StatisticsProtobufController {
             produces = "application/x-protobuf"
     )
     public ResponseEntity<ResponseCollection> getPersonById(@RequestBody RequestCollection request) {
-        StatisticEntity statisticEntity = statisticService.fetchStatisticByUsername(
+        StatisticEntity statisticEntity = dataService.fetchStatisticByUsername(
                 request.getStatisticsList().get(0).getUsername()
         );
 

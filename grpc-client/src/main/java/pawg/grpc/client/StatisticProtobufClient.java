@@ -22,11 +22,12 @@ public class StatisticProtobufClient {
             try (InputStream stream = client.send(get, BodyHandlers.ofInputStream()).body()) {
                 StatisticResponse statisticResponse = StatisticResponse.parseFrom(stream);
                 System.out.println(statisticResponse);
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
             }
 
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
-
     }
 }

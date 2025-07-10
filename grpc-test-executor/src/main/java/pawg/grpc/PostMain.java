@@ -2,23 +2,27 @@ package pawg.grpc;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import pawg.grpc.service.statistics.RequestCollection;
-import pawg.grpc.service.statistics.ResponseCollection;
-
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
+import pawg.grpc.service.statistics.RequestCollection;
+import pawg.grpc.service.statistics.ResponseCollection;
 
 public class PostMain {
 
@@ -31,69 +35,60 @@ public class PostMain {
     private static final URI REST_PROTOBUF_URI = URI.create("http://%s:%d/statistics/protobuf".formatted(HOST, REST_PORT));
     private static final Gson GSON = new Gson();
     private static final int NUMBER_OF_RECORDS = 4000;
-    private static final RequestCollection REQUEST_COLLECTION = GrpcClient.buildRequestCollection(NUMBER_OF_RECORDS);
-    private static final List<StatisticDTO> STATISTIC_DTOS = Stream.generate(() -> new StatisticDTO(UUID.randomUUID().toString(), USERNAME))
-            .limit(NUMBER_OF_RECORDS).toList();
 
-    private final static String BINARY = "request_collection.bin";
-    public static final String PROTOBUF_CSV = "protobuf.csv";
-    public static final String GRPC_CSV = "grpc.csv";
-    public static final String REST_CSV = "rest.csv";
+    private static final int NUMBER_OF_CALLS = 1000;
+
+    private static final List<Duration> restMillis = new ArrayList<>(NUMBER_OF_CALLS);
+    private static final List<Duration> protMillis = new ArrayList<>(NUMBER_OF_CALLS);
+    private static final List<Duration> grpcMillis = new ArrayList<>(NUMBER_OF_CALLS);
+    private static final RequestCollection REQUEST_COLLECTION = GrpcClient.buildRequestCollection(NUMBER_OF_RECORDS, USERNAME);
+    private static final List<StatisticDTO> STATISTIC_DTOS = Stream.generate(() -> new StatisticDTO(UUID.randomUUID().toString(), USERNAME))
+                                                                   .limit(NUMBER_OF_RECORDS).toList();
 
     public static void main(String[] args) {
         var start = LocalDateTime.now();
-
-        try {
-            Files.deleteIfExists(Paths.get(BINARY));
-            Files.deleteIfExists(Paths.get(REST_CSV));
-            Files.deleteIfExists(Paths.get(GRPC_CSV));
-            Files.deleteIfExists(Paths.get(PROTOBUF_CSV));
-        } catch (IOException e) {
-            e.printStackTrace(System.err);
-        }
-        try (FileOutputStream fos = new FileOutputStream(BINARY)) {
-            REQUEST_COLLECTION.writeTo(fos);
-        } catch (Exception ex) {
-            ex.printStackTrace(System.err);
-        }
-
         var executor = Executors.newFixedThreadPool(3);
-        int numberOfCalls = 1000;
-        var grpcClient = new GrpcClient(HOST, GRPC_PORT);
 
         try (var restClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-             var restProtobufClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
+                var restProtobufClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+                var grpcClient = new GrpcClient(HOST, GRPC_PORT)) {
 
             CompletableFuture.allOf(
-                    CompletableFuture.runAsync(runnableGrpc(grpcClient, numberOfCalls), executor),
-                    CompletableFuture.runAsync(runnableRest(restClient, numberOfCalls), executor),
-                    CompletableFuture.runAsync(runnableRestProtobuf(restProtobufClient, numberOfCalls), executor)
-            ).join();
+                                     CompletableFuture.runAsync(runnableGrpc(grpcClient), executor),
+                                     CompletableFuture.runAsync(runnableRest(restClient), executor),
+                                     CompletableFuture.runAsync(runnableProtobuf(restProtobufClient), executor)
+                             )
+                             .whenComplete((r, t) -> {
+                                 List<Metric> metrics = buildMetrics();
+                                 writeResultToFile(metrics);
+                                 double restAvg = printAndGetAvg(restMillis, "rest");
+                                 double protAvg = printAndGetAvg(protMillis, "prot");
+                                 double grpcAvg = printAndGetAvg(grpcMillis, "grpc");
+                                 System.out.printf("Prot gain = %.2f%s%n", (100 * (restAvg - protAvg) / restAvg), "%");
+                                 System.out.printf("gRPC gain = %.2f%s%n", (100 * (restAvg - grpcAvg) / restAvg), "%");
+                             })
+                             .join();
 
         } catch (Exception e) {
-            e.printStackTrace(System.err);
-        }
-
-        try {
-            grpcClient.shutdown();
-        } catch (InterruptedException e) {
             e.printStackTrace(System.err);
         } finally {
             executor.shutdown();
             Duration duration = Duration.between(start, LocalDateTime.now());
-            System.out.printf("Test completed in %d:%d.%n", duration.toMinutes(), duration.toSecondsPart());
+            if (duration.toMinutesPart() > 0) {
+                System.out.printf("Test completed in %dm:%ds.%n", duration.toMinutes(), duration.toSecondsPart());
+            } else {
+                System.out.printf("Test completed in %ds.%n", duration.toSecondsPart());
+            }
         }
         System.exit(0);
     }
 
-    private static Runnable runnableGrpc(final GrpcClient grpcClient, final int numberOfRequests) {
+    private static Runnable runnableGrpc(final GrpcClient grpcClient) {
         return () -> {
-            for (int i = 1; i <= numberOfRequests; i++) {
+            for (int i = 1; i <= NUMBER_OF_CALLS; i++) {
                 LocalDateTime start = LocalDateTime.now();
                 executeGrpcCall(grpcClient, i);
-                Duration duration = Duration.between(start, LocalDateTime.now());
-
-                writeResultToFile(GRPC_CSV, duration);
+                grpcMillis.add(Duration.between(start, LocalDateTime.now()));
             }
         };
     }
@@ -103,22 +98,39 @@ public class PostMain {
         System.out.printf("%d. gRPC call completed [%d].%n", counter, response.getStatisticsCount());
     }
 
-    private static void writeResultToFile(String fileName, Duration duration) {
-        try (FileWriter fileWriter = new FileWriter(fileName, true)) {
-            fileWriter.append(String.valueOf(duration.toMillis())).append("\n");
+    private static void writeResultToFile(List<Metric> metrics) {
+        try (FileWriter fileWriter = new FileWriter("result.csv", true)) {
+            fileWriter.append(Metric.csvHeaders()).append("\n");
+            for (Metric metric : metrics) {
+                fileWriter.append(String.valueOf(metric.restMillis()))
+                          .append(";")
+                          .append(String.valueOf(metric.restProtoMillis()))
+                          .append(";").append(String.valueOf(metric.grpcMillis())).append(System.lineSeparator());
+            }
         } catch (IOException e) {
             e.printStackTrace(System.err);
         }
     }
 
-    private static Runnable runnableRest(final HttpClient httpClient, final int numberOfRequests) {
+    private static List<Metric> buildMetrics() {
+        List<Metric> metics = new ArrayList<>(NUMBER_OF_CALLS);
+        for (int i = 0; i < NUMBER_OF_CALLS; i++) {
+            metics.add(new Metric(
+                    restMillis.get(i).toMillis(),
+                    protMillis.get(i).toMillis(),
+                    grpcMillis.get(i).toMillis()
+
+            ));
+        }
+        return metics;
+    }
+
+    private static Runnable runnableRest(final HttpClient httpClient) {
         return () -> {
-            for (int i = 1; i <= numberOfRequests; i++) {
+            for (int i = 1; i <= NUMBER_OF_CALLS; i++) {
                 LocalDateTime start = LocalDateTime.now();
                 executeRestCall(httpClient, i);
-                Duration duration = Duration.between(start, LocalDateTime.now());
-
-                writeResultToFile(REST_CSV, duration);
+                restMillis.add(Duration.between(start, LocalDateTime.now()));
             }
         };
     }
@@ -126,14 +138,13 @@ public class PostMain {
     private static void executeRestCall(final HttpClient httpClient, final int counter) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(REST_URI)
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(STATISTIC_DTOS)))
-                    .build();
+                                             .uri(REST_URI)
+                                             .header("Content-Type", "application/json")
+                                             .header("Accept", "application/json")
+                                             .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(STATISTIC_DTOS)))
+                                             .build();
             HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8));
-            TypeToken<List<StatisticDTO>> typeToken = new TypeToken<>() {
-            };
+            TypeToken<List<StatisticDTO>> typeToken = new TypeToken<>() {};
             List<StatisticDTO> statistics = GSON.fromJson(response.body(), typeToken);
             System.out.printf("%d. REST call completed [%s].%n", counter, statistics.size());
 
@@ -142,36 +153,42 @@ public class PostMain {
         }
     }
 
-    private static Runnable runnableRestProtobuf(HttpClient httpClient, int numberOfRequests) {
+    private static Runnable runnableProtobuf(HttpClient httpClient) {
         return () -> {
-            for (int i = 1; i <= numberOfRequests; i++) {
+            for (int i = 1; i <= NUMBER_OF_CALLS; i++) {
                 LocalDateTime start = LocalDateTime.now();
                 executeRestProtobufCall(httpClient, i);
-                Duration duration = Duration.between(start, LocalDateTime.now());
-
-                writeResultToFile(PROTOBUF_CSV, duration);
+                protMillis.add(Duration.between(start, LocalDateTime.now()));
             }
         };
     }
 
     private static void executeRestProtobufCall(final HttpClient client, final int counter) {
-        try (InputStream is = new FileInputStream(BINARY)) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            REQUEST_COLLECTION.writeTo(out);
+            try (ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray())) {
 
-            HttpRequest post = HttpRequest.newBuilder()
-                    .POST(HttpRequest.BodyPublishers.ofInputStream(() -> is))
-                    .uri(REST_PROTOBUF_URI)
-                    .header("Content-Type", "application/x-protobuf")
-                    .header("Accept", "application/x-protobuf")
-                    .build();
+                HttpRequest post = HttpRequest.newBuilder()
+                                              .POST(HttpRequest.BodyPublishers.ofInputStream(() -> in))
+                                              .uri(REST_PROTOBUF_URI)
+                                              .header("Content-Type", "application/x-protobuf")
+                                              .header("Accept", "application/x-protobuf")
+                                              .build();
 
-            try (InputStream stream = client.send(post, BodyHandlers.ofInputStream()).body()) {
-                ResponseCollection response = ResponseCollection.parseFrom(stream);
-                System.out.printf("%d. Protobuf call completed [%s].%n", counter, response.getStatisticsCount());
+                try (InputStream is = client.send(post, BodyHandlers.ofInputStream()).body()) {
+                    ResponseCollection response = ResponseCollection.parseFrom(is);
+                    System.out.printf("%d. Protobuf call completed [%s].%n", counter, response.getStatisticsCount());
+                }
             }
-
-        } catch (IOException | InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace(System.err);
         }
+    }
+
+    private static double printAndGetAvg(List<Duration> durations, String name) {
+        double avg = (double) durations.stream().mapToLong(Duration::toMillis).sum() / NUMBER_OF_CALLS;
+        System.out.printf("AVG(%s) = %.3f%n", name, avg);
+        return avg;
     }
 
 }

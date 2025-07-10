@@ -1,32 +1,35 @@
 package pawg.grpc.springgrpcserver;
 
 import io.grpc.stub.StreamObserver;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.grpc.server.service.GrpcService;
-import pawg.grpc.service.statistics.*;
+import pawg.grpc.service.statistics.RequestCollection;
+import pawg.grpc.service.statistics.ResponseCollection;
+import pawg.grpc.service.statistics.StatisticGrpc;
+import pawg.grpc.service.statistics.StatisticRequest;
+import pawg.grpc.service.statistics.StatisticResponse;
 import pawg.grpc.service.statistics.StatisticResponse.Builder;
-
-import java.util.List;
 
 @GrpcService
 public class StatisticsGRPC extends StatisticGrpc.StatisticImplBase {
 
     private static final Logger logger = LoggerFactory.getLogger(StatisticsGRPC.class);
 
-    private final StatisticService statisticService;
+    private final DataService dataService;
 
     @Autowired
-    public StatisticsGRPC(StatisticService statisticService) {
-        this.statisticService = statisticService;
+    public StatisticsGRPC(DataService dataService) {
+        this.dataService = dataService;
     }
 
     @Override
     public void postStatistics(RequestCollection request, StreamObserver<ResponseCollection> responseObserver) {
         logger.info("Received post request size : {}", request.getStatisticsCount());
 
-        StatisticEntity statisticEntity = statisticService.fetchStatisticByUsername(
+        StatisticEntity statisticEntity = dataService.fetchStatisticByUsername(
                 request.getStatisticsList().get(0).getUsername()
         );
         List<StatisticResponse> list = request.getStatisticsList()
@@ -64,7 +67,7 @@ public class StatisticsGRPC extends StatisticGrpc.StatisticImplBase {
     public void getStatistic(StatisticRequest request, StreamObserver<StatisticResponse> responseObserver) {
         logger.info("Received fetch request from client: {}", request.getUsername());
 
-        StatisticEntity statisticEntity = statisticService.fetchStatisticByUsername(request.getUsername());
+        StatisticEntity statisticEntity = dataService.fetchStatisticByUsername(request.getUsername());
 
         Builder responseBuilder = StatisticResponse.newBuilder()
                                                    .setId(statisticEntity.id)

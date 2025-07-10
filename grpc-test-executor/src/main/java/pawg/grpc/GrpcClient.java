@@ -1,12 +1,19 @@
 package pawg.grpc;
 
-import io.grpc.*;
-import pawg.grpc.service.statistics.*;
-
-import java.util.*;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import pawg.grpc.service.statistics.RequestCollection;
+import pawg.grpc.service.statistics.ResponseCollection;
+import pawg.grpc.service.statistics.StatisticGrpc;
+import pawg.grpc.service.statistics.StatisticRequest;
+import pawg.grpc.service.statistics.StatisticResponse;
 
-public class GrpcClient {
+public class GrpcClient implements AutoCloseable{
 
     private final ManagedChannel channel;
     private final StatisticGrpc.StatisticBlockingStub blockingStub;
@@ -16,10 +23,6 @@ public class GrpcClient {
                                        .usePlaintext() // Use plaintext for development, for production use TLS
                                        .build();
         blockingStub = StatisticGrpc.newBlockingStub(channel);
-    }
-
-    public void shutdown() throws InterruptedException {
-        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
     public StatisticResponse fetchStatistic(String username) {
@@ -41,15 +44,24 @@ public class GrpcClient {
         return ResponseCollection.newBuilder().build();
     }
 
-    static RequestCollection buildRequestCollection(int numberOfRecords) {
+    static RequestCollection buildRequestCollection(int numberOfRecords, String username) {
         List<StatisticRequest> list = new ArrayList<>(numberOfRecords);
         for (int i = 0; i < numberOfRecords; i++) {
             list.add(StatisticRequest.newBuilder()
-                    .setUsername("PAWG")
+                    .setUsername(username)
                     .setId(UUID.randomUUID().toString())
                     .build()
             );
         }
         return RequestCollection.newBuilder().addAllStatistics(list).build();
+    }
+
+    @Override
+    public void close() throws Exception {
+        try {
+            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace(System.err);
+        }
     }
 }
