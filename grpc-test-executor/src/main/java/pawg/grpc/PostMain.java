@@ -13,6 +13,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,16 +30,15 @@ import pawg.grpc.service.statistics.ResponseCollection;
 public class PostMain {
 
     //    private static final String HOST = "Grpc-vs-REST.eu-north-1.elasticbeanstalk.com";
-    private static final String HOST = "localhost";
-    private static final String USERNAME = "PAWG";
     private static final int GRPC_PORT = 9090;
     private static final int REST_PORT = 8080;
+    private static final String HOST = "localhost";
+    private static final String USERNAME = "PAWG";
     private static final URI REST_URI = URI.create("http://%s:%d/statistics".formatted(HOST, REST_PORT));
     private static final URI REST_PROTOBUF_URI = URI.create("http://%s:%d/statistics/protobuf".formatted(HOST, REST_PORT));
+    private static final int NUMBER_OF_RECORDS = 4050;
+    private static final int NUMBER_OF_CALLS = 100;
     private static final Gson GSON = new Gson();
-    private static final int NUMBER_OF_RECORDS = 4000;
-
-    private static final int NUMBER_OF_CALLS = 1000;
 
     private static final List<Duration> restMillis = new ArrayList<>(NUMBER_OF_CALLS);
     private static final List<Duration> protMillis = new ArrayList<>(NUMBER_OF_CALLS);
@@ -61,6 +63,7 @@ public class PostMain {
                              .whenComplete((r, t) -> {
                                  List<Metric> metrics = buildMetrics();
                                  writeResultToFile(metrics);
+                                 System.out.println("=================================");
                                  double restAvg = printAndGetAvg(restMillis, "rest");
                                  double protAvg = printAndGetAvg(protMillis, "prot");
                                  double grpcAvg = printAndGetAvg(grpcMillis, "grpc");
@@ -99,13 +102,22 @@ public class PostMain {
     }
 
     private static void writeResultToFile(List<Metric> metrics) {
-        try (FileWriter fileWriter = new FileWriter("result.csv", true)) {
+        Path resultCSV = Paths.get("result.csv");
+        try {
+            Files.deleteIfExists(resultCSV);
+        } catch (IOException e) {
+            e.printStackTrace(System.err);
+        }
+        try (FileWriter fileWriter = new FileWriter(resultCSV.toFile(), true)) {
             fileWriter.append(Metric.csvHeaders()).append("\n");
+            int idx = 0;
             for (Metric metric : metrics) {
                 fileWriter.append(String.valueOf(metric.restMillis()))
                           .append(";")
                           .append(String.valueOf(metric.restProtoMillis()))
-                          .append(";").append(String.valueOf(metric.grpcMillis())).append(System.lineSeparator());
+                          .append(";").append(String.valueOf(metric.grpcMillis()))
+                          .append(";").append(idx++ % 100 == 0 ? "" : String.valueOf(idx))
+                          .append(System.lineSeparator());
             }
         } catch (IOException e) {
             e.printStackTrace(System.err);
