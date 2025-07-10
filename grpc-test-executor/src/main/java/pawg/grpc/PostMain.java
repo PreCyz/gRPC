@@ -2,30 +2,21 @@ package pawg.grpc;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
+import pawg.grpc.service.statistics.RequestCollection;
+import pawg.grpc.service.statistics.ResponseCollection;
+
+import java.io.*;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.http.*;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
-import pawg.grpc.service.statistics.RequestCollection;
-import pawg.grpc.service.statistics.ResponseCollection;
 
 public class PostMain {
 
@@ -37,7 +28,7 @@ public class PostMain {
     private static final URI REST_URI = URI.create("http://%s:%d/statistics".formatted(HOST, REST_PORT));
     private static final URI REST_PROTOBUF_URI = URI.create("http://%s:%d/statistics/protobuf".formatted(HOST, REST_PORT));
     private static final int NUMBER_OF_RECORDS = 4050;
-    private static final int NUMBER_OF_CALLS = 100;
+    private static final int NUMBER_OF_CALLS = 1000;
     private static final Gson GSON = new Gson();
 
     private static final List<Duration> restMillis = new ArrayList<>(NUMBER_OF_CALLS);
@@ -47,6 +38,9 @@ public class PostMain {
     private static final List<StatisticDTO> STATISTIC_DTOS = Stream.generate(() -> new StatisticDTO(UUID.randomUUID().toString(), USERNAME))
                                                                    .limit(NUMBER_OF_RECORDS).toList();
     private static final TypeToken<List<StatisticDTO>> TYPE_TOKEN = new TypeToken<>() {};
+
+    private static int protobufRespPayloadSize;
+    private static int restRespPayloadSize;
 
     public static void main(String[] args) {
         var start = LocalDateTime.now();
@@ -65,11 +59,29 @@ public class PostMain {
                                  List<Metric> metrics = buildMetrics();
                                  writeResultToFile(metrics);
                                  System.out.println("=================================");
+                                 System.out.printf("REST max = %d%n", restMillis.stream().mapToLong(Duration::toMillis).max().getAsLong());
+                                 System.out.printf("REST min = %d%n", restMillis.stream().mapToLong(Duration::toMillis).min().getAsLong());
+                                 System.out.printf("Prot max = %d%n", protMillis.stream().mapToLong(Duration::toMillis).max().getAsLong());
+                                 System.out.printf("Prot min = %d%n", protMillis.stream().mapToLong(Duration::toMillis).min().getAsLong());
+                                 System.out.printf("gRPC max = %d%n", grpcMillis.stream().mapToLong(Duration::toMillis).max().getAsLong());
+                                 System.out.printf("gRPC min = %d%n", grpcMillis.stream().mapToLong(Duration::toMillis).min().getAsLong());
+                                 System.out.println("=================================");
                                  double restAvg = printAndGetAvg(restMillis, "rest");
                                  double protAvg = printAndGetAvg(protMillis, "prot");
                                  double grpcAvg = printAndGetAvg(grpcMillis, "grpc");
+                                 System.out.println("=================================");
                                  System.out.printf("Prot gain = %.2f%s%n", (100 * (restAvg - protAvg) / restAvg), "%");
                                  System.out.printf("gRPC gain = %.2f%s%n", (100 * (restAvg - grpcAvg) / restAvg), "%");
+                                 System.out.println("=================================");
+                                 int protoReqPayloadSize = REQUEST_COLLECTION.toByteArray().length;
+                                 int restRequestPayloadSize = GSON.toJson(STATISTIC_DTOS).getBytes().length;
+                                 System.out.printf("gRPC and Protobuf request payload size = %d%n", protoReqPayloadSize);
+                                 System.out.printf("REST request payload size = %d%n", restRequestPayloadSize);
+                                 System.out.printf("Request payload gain = %.2f%s%n", (100d * (restRequestPayloadSize -  protoReqPayloadSize) / restRequestPayloadSize), "%");
+                                 System.out.println("=================================");
+                                 System.out.printf("gRPC and Protobuf response payload size = %d%n", protobufRespPayloadSize);
+                                 System.out.printf("REST response payload size = %d%n", restRespPayloadSize);
+                                 System.out.printf("Response payload gain = %.2f%s%n", (100d * (restRespPayloadSize -  protobufRespPayloadSize) / restRespPayloadSize), "%");
                              })
                              .join();
 
@@ -99,7 +111,11 @@ public class PostMain {
 
     private static void executeGrpcCall(GrpcClient client, int counter) {
         ResponseCollection response = client.fetchStatistics(REQUEST_COLLECTION);
-        System.out.printf("%d. gRPC call completed [%d].%n", counter, response.getStatisticsCount());
+        if (counter % 100 == 0) {
+            protobufRespPayloadSize = response.toByteArray().length;
+            System.out.printf("%d. gRPC call completed. Number of records in payload [%d]. Payload size [%d]. Response size [%d].%n",
+                    counter, response.getStatisticsCount(), REQUEST_COLLECTION.toByteArray().length, protobufRespPayloadSize);
+        }
     }
 
     private static void writeResultToFile(List<Metric> metrics) {
@@ -149,17 +165,22 @@ public class PostMain {
     }
 
     private static void executeRestCall(final HttpClient httpClient, final int counter) {
+        String payload = GSON.toJson(STATISTIC_DTOS);
         HttpRequest post = HttpRequest.newBuilder()
                                       .uri(REST_URI)
                                       .header("Content-Type", "application/json")
                                       .header("Accept", "application/json")
-                                      .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(STATISTIC_DTOS)))
+                                      .POST(HttpRequest.BodyPublishers.ofString(payload))
                                       .build();
         try {
             HttpResponse<String> response = httpClient.send(post, BodyHandlers.ofString(StandardCharsets.UTF_8));
             List<StatisticDTO> statistics = GSON.fromJson(response.body(), TYPE_TOKEN);
-            System.out.printf("%d. REST call completed [%s].%n", counter, statistics.size());
 
+            if (counter % 100 == 0) {
+                restRespPayloadSize = response.body().getBytes().length;
+                System.out.printf("%d. REST call completed. Number of records in payload [%d]. Payload size [%d]. Response payload size [%d].%n",
+                        counter, statistics.size(), payload.getBytes().length, restRespPayloadSize);
+            }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace(System.err);
         }
@@ -189,7 +210,10 @@ public class PostMain {
 
                 try (InputStream is = client.send(post, BodyHandlers.ofInputStream()).body()) {
                     ResponseCollection response = ResponseCollection.parseFrom(is);
-                    System.out.printf("%d. Protobuf call completed [%s].%n", counter, response.getStatisticsCount());
+                    if (counter % 100 == 0) {
+                        System.out.printf("%d. Protobuf call completed. Number of records in payload [%d]. Payload size [%d]. Response size [%d]%n",
+                                counter, response.getStatisticsCount(), out.size(), response.toByteArray().length);
+                    }
                 }
             }
         } catch (Exception e) {
