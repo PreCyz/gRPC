@@ -46,6 +46,7 @@ public class PostMain {
     private static final RequestCollection REQUEST_COLLECTION = GrpcClient.buildRequestCollection(NUMBER_OF_RECORDS, USERNAME);
     private static final List<StatisticDTO> STATISTIC_DTOS = Stream.generate(() -> new StatisticDTO(UUID.randomUUID().toString(), USERNAME))
                                                                    .limit(NUMBER_OF_RECORDS).toList();
+    private static final TypeToken<List<StatisticDTO>> TYPE_TOKEN = new TypeToken<>() {};
 
     public static void main(String[] args) {
         var start = LocalDateTime.now();
@@ -148,16 +149,15 @@ public class PostMain {
     }
 
     private static void executeRestCall(final HttpClient httpClient, final int counter) {
+        HttpRequest post = HttpRequest.newBuilder()
+                                      .uri(REST_URI)
+                                      .header("Content-Type", "application/json")
+                                      .header("Accept", "application/json")
+                                      .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(STATISTIC_DTOS)))
+                                      .build();
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                                             .uri(REST_URI)
-                                             .header("Content-Type", "application/json")
-                                             .header("Accept", "application/json")
-                                             .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(STATISTIC_DTOS)))
-                                             .build();
-            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8));
-            TypeToken<List<StatisticDTO>> typeToken = new TypeToken<>() {};
-            List<StatisticDTO> statistics = GSON.fromJson(response.body(), typeToken);
+            HttpResponse<String> response = httpClient.send(post, BodyHandlers.ofString(StandardCharsets.UTF_8));
+            List<StatisticDTO> statistics = GSON.fromJson(response.body(), TYPE_TOKEN);
             System.out.printf("%d. REST call completed [%s].%n", counter, statistics.size());
 
         } catch (IOException | InterruptedException e) {
