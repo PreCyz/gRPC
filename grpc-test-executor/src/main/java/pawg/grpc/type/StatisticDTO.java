@@ -1,4 +1,4 @@
-package pawg.grpc;
+package pawg.grpc.type;
 
 import java.util.Set;
 

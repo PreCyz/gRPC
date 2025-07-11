@@ -1,4 +1,4 @@
-package pawg.grpc;
+package pawg.grpc.type;
 
 public record Metric(long restMillis, long restProtoMillis, long grpcMillis) {
     public static String csvHeaders() {

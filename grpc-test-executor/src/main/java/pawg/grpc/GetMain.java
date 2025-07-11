@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import pawg.grpc.service.statistics.StatisticResponse;
+import pawg.grpc.type.GrpcClient;
+import pawg.grpc.type.StatisticDTO;
 
 public class GetMain {
 

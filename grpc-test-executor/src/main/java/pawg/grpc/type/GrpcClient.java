@@ -1,4 +1,4 @@
-package pawg.grpc;
+package pawg.grpc.type;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -44,7 +44,7 @@ public class GrpcClient implements AutoCloseable{
         return ResponseCollection.newBuilder().build();
     }
 
-    static RequestCollection buildRequestCollection(int numberOfRecords, String username) {
+    public static RequestCollection buildRequestCollection(int numberOfRecords, String username) {
         List<StatisticRequest> list = new ArrayList<>(numberOfRecords);
         for (int i = 0; i < numberOfRecords; i++) {
             list.add(StatisticRequest.newBuilder()
