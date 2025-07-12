@@ -3,11 +3,10 @@ package pawg.grpc.type;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.http.*;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -44,7 +43,7 @@ public class Rest extends AbstractBase {
 
             if (requestNumber % 100 == 0) {
                 responsePayloadSize = response.body().getBytes().length;
-                System.out.printf("%d. REST call completed. Number of records in payload [%d]. Payload size [%d]. Response payload size [%d].%n",
+                System.out.printf("%d. REST call completed. Number of records in payload [%d]. Request payload size [%d]. Response payload size [%d].%n",
                         requestNumber, statistics.size(), payload.getBytes().length, responsePayloadSize);
             }
         } catch (IOException | InterruptedException e) {

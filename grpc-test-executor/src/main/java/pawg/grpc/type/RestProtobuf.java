@@ -1,14 +1,13 @@
 package pawg.grpc.type;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import pawg.grpc.service.statistics.RequestCollection;
+import pawg.grpc.service.statistics.ResponseCollection;
+
+import java.io.*;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
-import pawg.grpc.service.statistics.RequestCollection;
-import pawg.grpc.service.statistics.ResponseCollection;
 
 public class RestProtobuf extends Rest {
     private final RequestCollection requestCollection;
@@ -35,7 +34,7 @@ public class RestProtobuf extends Rest {
                     ResponseCollection response = ResponseCollection.parseFrom(is);
                     if (requestNumber % 100 == 0) {
                         responsePayloadSize = response.toByteArray().length;
-                        System.out.printf("%d. Protobuf call completed. Number of records in payload [%d]. Payload size [%d]. Response size [%d]%n",
+                        System.out.printf("%d. Protobuf call completed. Number of records in payload [%d]. Request payload size [%d]. Response size [%d]%n",
                                 requestNumber, response.getStatisticsCount(), out.size(), response.toByteArray().length);
                     }
                 }

@@ -1,9 +1,9 @@
 # Tech stack
 * Maven 3.9.9
-* maven.compiler.source 11
-* maven.compiler.target 11
-* grpc.version 1.64.0
-* protobuf.version 3.25.1
+* maven.compiler.source 21
+* maven.compiler.target 21
+* grpc.version 1.72.0
+* protobuf.version 4.30.2
 * protobuf-plugin.version 0.6.1
 
 # Build the whole project
@@ -23,4 +23,13 @@ $java_path -jar target/greeting-server-1.0-SNAPSHOT.jar
 cd greeting-client
 set java_path=$ENV:JAVA11_HOME\bin\java.exe
 $java_path -jar target/greeting-client-1.0-SNAPSHOT.jar
+```
+
+# AWS Env variables
+```
+MONGODB_PASSWORD=mSzEh0sWLEWHVDR6
+MONGODB_DATABASE=gipter-test
+MONGODB_USERNAME=gipter-test
+MONGODB_HOST=gipter-test.ruzxs.mongodb.net
+SPRING_PROFILES_ACTIVE=mongo
 ```

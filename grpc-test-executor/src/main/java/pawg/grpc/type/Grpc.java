@@ -18,7 +18,7 @@ public class Grpc extends AbstractBase {
         ResponseCollection response = grpcClient.fetchStatistics(requestCollection);
         if (requestNumber % 100 == 0) {
             responsePayloadSize = response.toByteArray().length;
-            System.out.printf("%d. gRPC call completed. Number of records in payload [%d]. Payload size [%d]. Response size [%d].%n",
+            System.out.printf("%d. gRPC call completed. Number of records in payload [%d]. Request payload size [%d]. Response size [%d].%n",
                     requestNumber, response.getStatisticsCount(), requestCollection.toByteArray().length, responsePayloadSize);
         }
     }
